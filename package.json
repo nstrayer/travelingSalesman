@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "watchify src/main.js -t [ babelify --presets [ es2015 ] ] --outfile bundle.js",
+    "build": "browserify src/main.js -t [ babelify --presets [ es2015 ] ] --outfile bundle.js",
     "serve": "budo src/main.js:bundle.js --live -- -t [ babelify --presets [ es2015 ] ]"
   },
   "author": "Nick Strayer <nick.strayer@gmail.com> (http://nickstrayer.me)",
