@@ -29,9 +29,12 @@ export default (c, config, distHistory) => {
     .at({
       width: width,
       height: height,
-      fill: 'lightgrey',
+      fill: '#d9d9d9',
+      fillOpacity: 0.2,
       rx: 10,
       ry: 10,
+      stroke: "darkgrey",
+      strokeWidth: 1,
     });
   
   // title text
@@ -49,8 +52,8 @@ export default (c, config, distHistory) => {
     .selectAppend('path.distHist')
     .at({
         fill: 'none',
-        stroke: 'orangered',
-        strokeWidth: '1px'
+        stroke: '#bc80bd',
+        strokeWidth: '2px'
       })
       .datum(distHistory)
       .attr('d', line);

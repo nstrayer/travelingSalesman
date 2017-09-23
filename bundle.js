@@ -43153,9 +43153,12 @@ exports.default = function (c, config, distHistory) {
   distanceContainer.selectAppend('rect.background').at({
     width: width,
     height: height,
-    fill: 'lightgrey',
+    fill: '#d9d9d9',
+    fillOpacity: 0.2,
     rx: 10,
-    ry: 10
+    ry: 10,
+    stroke: "darkgrey",
+    strokeWidth: 1
   });
 
   // title text
@@ -43173,8 +43176,8 @@ exports.default = function (c, config, distHistory) {
 
   distanceContainer.selectAppend('path.distHist').at({
     fill: 'none',
-    stroke: 'orangered',
-    strokeWidth: '1px'
+    stroke: '#bc80bd',
+    strokeWidth: '2px'
   }).datum(distHistory).attr('d', line);
 };
 
@@ -43342,7 +43345,9 @@ exports.default = function (c, onClick) {
     height: buttonHeight,
     rx: 10,
     ry: 10,
-    fill: "PaleTurquoise"
+    fill: "#d9d9d9",
+    stroke: "darkgrey",
+    strokeWidth: 1
   });
 
   resetButton.selectAppend('text').text("reset").at({
@@ -43376,7 +43381,7 @@ var drawLocations = exports.drawLocations = function drawLocations(c, locations)
       return c.y(d.y);
     },
     r: 1e-10,
-    fill: "steelblue"
+    fill: "#fb8072"
   }).transition(d3.transition('locationEnter').duration(500)).at({ r: 10 });
 };
 
@@ -43393,7 +43398,7 @@ var drawRoute = exports.drawRoute = function drawRoute(c, route, locations, simS
 
   var routePath = c.svg.selectAppend('path.routePath').at({
     fill: 'none',
-    stroke: 'orangered',
+    stroke: '#80b1d3',
     strokeWidth: '2px'
   });
 

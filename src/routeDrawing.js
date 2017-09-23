@@ -14,7 +14,7 @@ export const drawLocations = (c, locations) => {
       cx: d => c.x(d.x),
       cy: d => c.y(d.y),
       r: 1e-10,
-      fill: "steelblue"
+      fill: "#fb8072"
     })
     .transition(d3.transition('locationEnter').duration(500))
     .at({r: 10});
@@ -30,7 +30,7 @@ export const drawRoute = (c, route, locations, simSpeed) => {
   const routePath = c.svg.selectAppend('path.routePath')
     .at({
       fill: 'none',
-      stroke: 'orangered',
+      stroke: '#80b1d3',
       strokeWidth: '2px'
     });
 

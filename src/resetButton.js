@@ -11,7 +11,9 @@ export default (c, onClick) => {
       height: buttonHeight,
       rx: 10,
       ry: 10,
-      fill: "PaleTurquoise",
+      fill: "#d9d9d9",
+      stroke: "darkgrey",
+      strokeWidth: 1,
     });
   
   resetButton.selectAppend('text')
