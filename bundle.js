@@ -43223,10 +43223,13 @@ var tempHistory = [];
 var flipHistory = [];
 var updateViz = void 0;
 
+// get page width
+var pageWidth = document.getElementById('viz').offsetWidth;
+
 // d3 code to draw simple points
 var c = d3.conventions({
   parentSel: d3.select('#viz'),
-  totalWidth: 1000,
+  totalWidth: pageWidth,
   totalHeight: 700,
   margin: { left: 50, right: 50, top: 50, bottom: 50 }
 });
@@ -43237,7 +43240,7 @@ var route = (0, _algorithmFuncs.makeRoute)(numLocs);
 var locations = _.range(numLocs).map(function (ind) {
   return {
     x: _.random(0.33, 1, true),
-    y: _.random(1, true)
+    y: _.random(0.15, 1, true)
   };
 });
 

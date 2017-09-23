@@ -29,10 +29,13 @@ let tempHistory = [];
 let flipHistory = [];
 let updateViz;
 
+// get page width
+const pageWidth = document.getElementById('viz').offsetWidth;
+
 // d3 code to draw simple points
 const c = d3.conventions({
   parentSel: d3.select('#viz'),
-  totalWidth: 1000,
+  totalWidth: pageWidth,
   totalHeight: 700,
   margin: {left: 50, right: 50, top: 50, bottom: 50}
 });
@@ -42,7 +45,7 @@ c.y.domain([0,1])
 let route = makeRoute(numLocs);
 const locations = _.range(numLocs).map(ind => ({
     x: _.random(0.33, 1, true), 
-    y: _.random(1, true)
+    y: _.random(0.15, 1, true)
   }));
 
 // sliders
