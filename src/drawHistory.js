@@ -1,8 +1,7 @@
 const d3 = Object.assign({},require('d3'),require('d3-jetpack'));
 
-export default (config, distHistory) => {
+export default (c, config, distHistory) => {
   const {
-    c, 
     name, 
     title, 
     loc = [0,0], 
@@ -12,7 +11,6 @@ export default (config, distHistory) => {
 
   // mini line chart for the route distance
   const width = c.width * 0.25;
-  // const height = c.height * 0.25;
 
   const distanceContainer = c.svg
     .selectAppend('g.' + name)

@@ -11,29 +11,15 @@ export const makeRoute = (numLocs = 26) => {
 // if more than one set of flips is requested it will
 // recursively perform the flips until finishing.
 export const flipLocations = (route, numFlips = 1) => {
-  // choose two random indexes and flip them
-
   // the index we're going to swap
   const indexOne = _.random(1, route.length - 2);
-
   // the index to which we will switch it
   const indexTwo = _.random(1, route.length - 2);
 
   const takenOut = route.filter((d,i) => i != indexOne)
   const beforeFlipped = takenOut.slice(0,indexTwo);
   const afterFlipped = takenOut.slice(indexTwo, route.length)
-  // console.log(`flipping from index ${indexOne} to ${indexTwo}`)
-  // console.log(route)
-  // console.log(`swapping positions ${indexOne} and ${indexTwo}`)
-  // const newRoute = route.map(
-  //   (el, i) => i == indexOne ?
-  //                route[indexTwo] :
-  //              i == indexTwo ?
-  //                route[indexOne] : el
-  // );
-  const newRoute = [...beforeFlipped, route[indexOne], ...afterFlipped];
-  // console.log(newRoute)
-  
+  const newRoute = [...beforeFlipped, route[indexOne], ...afterFlipped];  
   return numFlips == 1 ? 
     newRoute : 
     flipLocations(newRoute, numFlips - 1)
@@ -70,8 +56,6 @@ export const acceptNewSolution = (currentDist, lastDist, tau) => {
     1,
     Math.exp((lastDist - currentDist)/tau)
   );
-
-  // console.log(`The new route is longer by ${currentDist - lastDist} and we are choosing to move with probability ${alpha}`)
   
   return _.random(1, true) < alpha;
 }

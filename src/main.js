@@ -2,21 +2,32 @@ const d3 = Object.assign({},require('d3'),require('d3-jetpack'));
 const _ = require('lodash');
 
 import slid3r from './slid3r/slid3r';
+import setupSliders from './sliderConfigs';
 import {makeRoute, flipLocations, acceptNewSolution, calcDistance} from './algorithmFuncs';
 import {drawLocations, drawRoute} from './routeDrawing';
 import drawHistory from './drawHistory';
+import resetButton from './resetButton';
+import {
+  subChartHeight, 
+  distChartConfig, 
+  tempChartConfig, 
+  flipsChartConfig,
+} from './subCharts';
 
 // some constants
-const numLocs = 20
+const numLocs = 20;
+const numberSteps = 10000;
 
 // variables we let user modify
+let i = 0;
 let tau = 0.5;
-let simSpeed = 20;
+let simSpeed = 0;
 let numFlips = 2;
-
-const distanceHistory = [];
-const tempHistory = [];
-const flipHistory = [];
+let automatedTau = true;
+let distanceHistory = [];
+let tempHistory = [];
+let flipHistory = [];
+let updateViz;
 
 // d3 code to draw simple points
 const c = d3.conventions({
@@ -29,93 +40,78 @@ c.x.domain([0,1])
 c.y.domain([0,1])
 
 let route = makeRoute(numLocs);
-const locations = _.range(numLocs)
-  .map(ind => ({
+const locations = _.range(numLocs).map(ind => ({
     x: _.random(0.33, 1, true), 
     y: _.random(1, true)
-  }))
+  }));
 
-const subChartHeight = 100;
-const distChartConfig = {
-  c, 
-  name:'distHist',
-  title: 'Distance',
-  height: subChartHeight
-};
+// sliders
+let {flipSlider, speedSlider, tauSlider} = setupSliders({
+  c,
+  numFlips,
+  simSpeed,
+  tau,
+  subChartHeight,
+});
 
-const tempChartConfig = {
-  c, 
-  name:'tempHist',
-  title: 'Temperature',
-  height: subChartHeight,
-  loc: [0, subChartHeight + 30]
-};
+const sliderChange = (pos) => {
+  console.log('taking over temp control');
+  automatedTau = false;
+  tau = pos;
+}
 
-const flipsChartConfig = {
-  c, 
-  name:'flipHist',
-  title: '# changes each gen',
-  loc: [0, (subChartHeight + 65)*2]
-};
+const tauContainer = c.svg.selectAppend('g.tauSlider');
+tauContainer.call(tauSlider.onDone(sliderChange));
 
-const tauSlider = slid3r()
-  .width(c.width * 0.2)
-  .range([0,0.5])
-  .startPos(tau)
-  .loc([10, subChartHeight + 170])
-  .vertical(false)
-  .label('Set Cooling Temp')
-  .clamp(false)
-  .onDone(pos => tau = pos);
+const flipContainer = c.svg.selectAppend('g.flipSlider');
+flipContainer.call(flipSlider.onDone(pos => numFlips = pos));
 
-c.svg
-  .selectAppend('g.tauSlider')
-  .call(tauSlider)
-  // .attr('transform', 'rotate(90)');
-
-
-const flipSlider = slid3r()
-  .width(c.width * 0.2)
-  .range([1,5])
-  .startPos(numFlips)
-  .loc([10, (subChartHeight + 65)*2 + 150])
-  .label('Set Number of Changes per gen')
-  .clamp(true)
-  .onDone(pos => numFlips = pos);
-
-c.svg.selectAppend('g.flipSlider').call(flipSlider);
-
-// const speedSlider = slid3r()
-//   .width(c.width * 0.2)
-//   .range([10,1000])
-//   .startPos(simSpeed)
-//   .loc([10, c.height*0.7])
-//   .label('Set Simulation Speed (ms per gen)')
-//   .clamp(true)
-//   .onDone(pos => simSpeed = pos);
-
-// c.svg.selectAppend('g.speedSlider').call(speedSlider);
-
-
-
+const speedContainer = c.svg.selectAppend('g.speedSlider');
+speedContainer.call( speedSlider.onDone(pos => updateViz = makeUpdateViz(pos)) );
 
 drawLocations(c, locations);
+resetButton(c, resetProgress)
 
-setInterval(() => {
-// setTimeout(() => {
+const makeUpdateViz = (simSpeed) => _.debounce( () => {
   const newRoute = flipLocations(route, numFlips)
   const lastDist = calcDistance(route, locations);
   const currentDist = calcDistance(newRoute, locations);
+  const chooseNew = acceptNewSolution(currentDist, lastDist, tau)
+  
+  route =  chooseNew ? newRoute: route;  
+  
+  // update tau if we're on automated schedule
+  if (automatedTau) {
+    tau = 5/(i*0.02 + 1);
+    tauContainer.call(tauSlider.startPos(tau));
+  }
+
+  // update history vectors
   distanceHistory.push(lastDist);
   tempHistory.push(tau);
   flipHistory.push(numFlips);
   
-  drawHistory(distChartConfig, distanceHistory);
-  drawHistory(tempChartConfig, tempHistory);
-  drawHistory(flipsChartConfig, flipHistory);
-  
-  const chooseNew = acceptNewSolution(currentDist, lastDist, tau)
-  route =  chooseNew ? newRoute: route;  
+  // redraw vis with new steps
+  drawHistory(c, distChartConfig, distanceHistory);
+  drawHistory(c, tempChartConfig, tempHistory);
+  drawHistory(c, flipsChartConfig, flipHistory);
   drawRoute(c, route, locations, simSpeed)
+
+  if(i < numberSteps){
+    i++
+    window.requestAnimationFrame(updateViz);    
+  }
 }, simSpeed);
 
+updateViz = makeUpdateViz(simSpeed)
+window.requestAnimationFrame(updateViz);
+
+function resetProgress(){
+  console.log('resetting!')
+  distanceHistory = [];
+  flipHistory = [];
+  tempHistory = [];
+  automatedTau = true;
+  route = makeRoute(numLocs); 
+  i = 0;
+}

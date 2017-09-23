@@ -43079,11 +43079,8 @@ var makeRoute = exports.makeRoute = function makeRoute() {
 var flipLocations = exports.flipLocations = function flipLocations(route) {
   var numFlips = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
 
-  // choose two random indexes and flip them
-
   // the index we're going to swap
   var indexOne = _.random(1, route.length - 2);
-
   // the index to which we will switch it
   var indexTwo = _.random(1, route.length - 2);
 
@@ -43092,18 +43089,7 @@ var flipLocations = exports.flipLocations = function flipLocations(route) {
   });
   var beforeFlipped = takenOut.slice(0, indexTwo);
   var afterFlipped = takenOut.slice(indexTwo, route.length);
-  // console.log(`flipping from index ${indexOne} to ${indexTwo}`)
-  // console.log(route)
-  // console.log(`swapping positions ${indexOne} and ${indexTwo}`)
-  // const newRoute = route.map(
-  //   (el, i) => i == indexOne ?
-  //                route[indexTwo] :
-  //              i == indexTwo ?
-  //                route[indexOne] : el
-  // );
   var newRoute = [].concat(_toConsumableArray(beforeFlipped), [route[indexOne]], _toConsumableArray(afterFlipped));
-  // console.log(newRoute)
-
   return numFlips == 1 ? newRoute : flipLocations(newRoute, numFlips - 1);
 };
 
@@ -43132,8 +43118,6 @@ var acceptNewSolution = exports.acceptNewSolution = function acceptNewSolution(c
 
   var alpha = Math.min(1, Math.exp((lastDist - currentDist) / tau));
 
-  // console.log(`The new route is longer by ${currentDist - lastDist} and we are choosing to move with probability ${alpha}`)
-
   return _.random(1, true) < alpha;
 };
 
@@ -43145,9 +43129,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
 
-exports.default = function (config, distHistory) {
-  var c = config.c,
-      name = config.name,
+exports.default = function (c, config, distHistory) {
+  var name = config.name,
       title = config.title,
       _config$loc = config.loc,
       loc = _config$loc === undefined ? [0, 0] : _config$loc,
@@ -43159,7 +43142,6 @@ exports.default = function (config, distHistory) {
   // mini line chart for the route distance
 
   var width = c.width * 0.25;
-  // const height = c.height * 0.25;
 
   var distanceContainer = c.svg.selectAppend('g.' + name).translate(loc);
 
@@ -43203,6 +43185,10 @@ var _slid3r = require('./slid3r/slid3r');
 
 var _slid3r2 = _interopRequireDefault(_slid3r);
 
+var _sliderConfigs = require('./sliderConfigs');
+
+var _sliderConfigs2 = _interopRequireDefault(_sliderConfigs);
+
 var _algorithmFuncs = require('./algorithmFuncs');
 
 var _routeDrawing = require('./routeDrawing');
@@ -43211,6 +43197,12 @@ var _drawHistory = require('./drawHistory');
 
 var _drawHistory2 = _interopRequireDefault(_drawHistory);
 
+var _resetButton = require('./resetButton');
+
+var _resetButton2 = _interopRequireDefault(_resetButton);
+
+var _subCharts = require('./subCharts');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
@@ -43218,15 +43210,18 @@ var _ = require('lodash');
 
 // some constants
 var numLocs = 20;
+var numberSteps = 10000;
 
 // variables we let user modify
+var i = 0;
 var tau = 0.5;
-var simSpeed = 20;
+var simSpeed = 0;
 var numFlips = 2;
-
+var automatedTau = true;
 var distanceHistory = [];
 var tempHistory = [];
 var flipHistory = [];
+var updateViz = void 0;
 
 // d3 code to draw simple points
 var c = d3.conventions({
@@ -43246,76 +43241,117 @@ var locations = _.range(numLocs).map(function (ind) {
   };
 });
 
-var subChartHeight = 100;
-var distChartConfig = {
+// sliders
+
+var _setupSliders = (0, _sliderConfigs2.default)({
   c: c,
-  name: 'distHist',
-  title: 'Distance',
-  height: subChartHeight
+  numFlips: numFlips,
+  simSpeed: simSpeed,
+  tau: tau,
+  subChartHeight: _subCharts.subChartHeight
+}),
+    flipSlider = _setupSliders.flipSlider,
+    speedSlider = _setupSliders.speedSlider,
+    tauSlider = _setupSliders.tauSlider;
+
+var sliderChange = function sliderChange(pos) {
+  console.log('taking over temp control');
+  automatedTau = false;
+  tau = pos;
 };
 
-var tempChartConfig = {
-  c: c,
-  name: 'tempHist',
-  title: 'Temperature',
-  height: subChartHeight,
-  loc: [0, subChartHeight + 30]
-};
+var tauContainer = c.svg.selectAppend('g.tauSlider');
+tauContainer.call(tauSlider.onDone(sliderChange));
 
-var flipsChartConfig = {
-  c: c,
-  name: 'flipHist',
-  title: '# changes each gen',
-  loc: [0, (subChartHeight + 65) * 2]
-};
-
-var tauSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 0.5]).startPos(tau).loc([10, subChartHeight + 170]).vertical(false).label('Set Cooling Temp').clamp(false).onDone(function (pos) {
-  return tau = pos;
-});
-
-c.svg.selectAppend('g.tauSlider').call(tauSlider);
-// .attr('transform', 'rotate(90)');
-
-
-var flipSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([1, 5]).startPos(numFlips).loc([10, (subChartHeight + 65) * 2 + 150]).label('Set Number of Changes per gen').clamp(true).onDone(function (pos) {
+var flipContainer = c.svg.selectAppend('g.flipSlider');
+flipContainer.call(flipSlider.onDone(function (pos) {
   return numFlips = pos;
-});
+}));
 
-c.svg.selectAppend('g.flipSlider').call(flipSlider);
-
-// const speedSlider = slid3r()
-//   .width(c.width * 0.2)
-//   .range([10,1000])
-//   .startPos(simSpeed)
-//   .loc([10, c.height*0.7])
-//   .label('Set Simulation Speed (ms per gen)')
-//   .clamp(true)
-//   .onDone(pos => simSpeed = pos);
-
-// c.svg.selectAppend('g.speedSlider').call(speedSlider);
-
+var speedContainer = c.svg.selectAppend('g.speedSlider');
+speedContainer.call(speedSlider.onDone(function (pos) {
+  return updateViz = makeUpdateViz(pos);
+}));
 
 (0, _routeDrawing.drawLocations)(c, locations);
+(0, _resetButton2.default)(c, resetProgress);
 
-setInterval(function () {
-  // setTimeout(() => {
-  var newRoute = (0, _algorithmFuncs.flipLocations)(route, numFlips);
-  var lastDist = (0, _algorithmFuncs.calcDistance)(route, locations);
-  var currentDist = (0, _algorithmFuncs.calcDistance)(newRoute, locations);
-  distanceHistory.push(lastDist);
-  tempHistory.push(tau);
-  flipHistory.push(numFlips);
+var makeUpdateViz = function makeUpdateViz(simSpeed) {
+  return _.debounce(function () {
+    var newRoute = (0, _algorithmFuncs.flipLocations)(route, numFlips);
+    var lastDist = (0, _algorithmFuncs.calcDistance)(route, locations);
+    var currentDist = (0, _algorithmFuncs.calcDistance)(newRoute, locations);
+    var chooseNew = (0, _algorithmFuncs.acceptNewSolution)(currentDist, lastDist, tau);
 
-  (0, _drawHistory2.default)(distChartConfig, distanceHistory);
-  (0, _drawHistory2.default)(tempChartConfig, tempHistory);
-  (0, _drawHistory2.default)(flipsChartConfig, flipHistory);
+    route = chooseNew ? newRoute : route;
 
-  var chooseNew = (0, _algorithmFuncs.acceptNewSolution)(currentDist, lastDist, tau);
-  route = chooseNew ? newRoute : route;
-  (0, _routeDrawing.drawRoute)(c, route, locations, simSpeed);
-}, simSpeed);
+    // update tau if we're on automated schedule
+    if (automatedTau) {
+      tau = 5 / (i * 0.02 + 1);
+      tauContainer.call(tauSlider.startPos(tau));
+    }
 
-},{"./algorithmFuncs":73,"./drawHistory":74,"./routeDrawing":76,"./slid3r/slid3r":77,"d3":38,"d3-jetpack":22,"lodash":45}],76:[function(require,module,exports){
+    // update history vectors
+    distanceHistory.push(lastDist);
+    tempHistory.push(tau);
+    flipHistory.push(numFlips);
+
+    // redraw vis with new steps
+    (0, _drawHistory2.default)(c, _subCharts.distChartConfig, distanceHistory);
+    (0, _drawHistory2.default)(c, _subCharts.tempChartConfig, tempHistory);
+    (0, _drawHistory2.default)(c, _subCharts.flipsChartConfig, flipHistory);
+    (0, _routeDrawing.drawRoute)(c, route, locations, simSpeed);
+
+    if (i < numberSteps) {
+      i++;
+      window.requestAnimationFrame(updateViz);
+    }
+  }, simSpeed);
+};
+
+updateViz = makeUpdateViz(simSpeed);
+window.requestAnimationFrame(updateViz);
+
+function resetProgress() {
+  console.log('resetting!');
+  distanceHistory = [];
+  flipHistory = [];
+  tempHistory = [];
+  automatedTau = true;
+  route = (0, _algorithmFuncs.makeRoute)(numLocs);
+  i = 0;
+}
+
+},{"./algorithmFuncs":73,"./drawHistory":74,"./resetButton":76,"./routeDrawing":77,"./slid3r/slid3r":78,"./sliderConfigs":80,"./subCharts":81,"d3":38,"d3-jetpack":22,"lodash":45}],76:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (c, onClick) {
+  var buttonWidth = 100;
+  var buttonHeight = 50;
+  var resetButton = c.svg.selectAppend('g.resetButton').translate([c.width - buttonWidth, c.height - buttonHeight]);
+
+  resetButton.selectAppend('rect').at({
+    width: buttonWidth,
+    height: buttonHeight,
+    rx: 10,
+    ry: 10,
+    fill: "PaleTurquoise"
+  });
+
+  resetButton.selectAppend('text').text("reset").at({
+    x: buttonWidth / 2,
+    y: buttonHeight / 1.8,
+    textAnchor: 'middle',
+    fontFamily: 'optima'
+  });
+  resetButton.on('click', onClick);
+};
+
+},{}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43361,7 +43397,7 @@ var drawRoute = exports.drawRoute = function drawRoute(c, route, locations, simS
   routePath.datum(routeLocations).transition(d3.transition('routeChange').duration(simSpeed)).attr('d', line);
 };
 
-},{"d3":38,"d3-jetpack":22}],77:[function(require,module,exports){
+},{"d3":38,"d3-jetpack":22}],78:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -43392,78 +43428,73 @@ function slid3r() {
   numTicks = 10,
       font = 'optima',
       vertical = false,
-      transitionLength = 200;
+      transitionLength = 10;
 
-  function drawSlider(selection) {
+  function drawSlider(sel) {
+    // console.log('drawing slider')
     if (vertical) console.log('rotating the slider');
 
+    // console.log(selection)
     var trans = d3.transition('sliderTrans').duration(transitionLength);
 
-    selection.each(function (d, i) {
+    var xScale = d3.scaleLinear().domain(sliderRange).range([0, sliderWidth]).clamp(true);
 
-      var sel = d3.select(this);
+    var getValue = function getValue(eventX) {
+      return xScale.invert(eventX);
+    };
 
-      var xScale = d3.scaleLinear().domain(sliderRange).range([0, sliderWidth]).clamp(true);
+    var slider = sel.attr("class", "slider").attr("transform", 'translate(' + xPos + ', ' + yPos + ')');
 
-      var getValue = function getValue(eventX) {
-        return xScale.invert(eventX);
-      };
+    if (vertical) {
+      slider.attr("transform", 'rotate(90)');
+    }
 
-      var slider = sel.attr("class", "slider").attr("transform", 'translate(' + xPos + ', ' + yPos + ')');
+    var track = slider.selectAppend("line.track").attr('x1', xScale.range()[0]).attr('x2', xScale.range()[1]);
 
-      if (vertical) {
-        slider.attr("transform", 'rotate(90)');
-      }
+    var trackInset = slider.selectAppend('line.track-inset').attr('x1', xScale.range()[0]).attr('x2', xScale.range()[1]);
 
-      var track = slider.append("line").attr("class", "track").attr('x1', xScale.range()[0]).attr('x2', xScale.range()[1]);
+    var trackOverlay = slider.selectAppend('line.track-overlay').attr('x1', xScale.range()[0]).attr('x2', xScale.range()[1]);
 
-      var trackInset = track.select(function () {
-        return this.parentNode.appendChild(this.cloneNode(true));
-      }).attr("class", "track-inset");
+    trackOverlay.call(d3.drag().on("start.interrupt", function () {
+      slider.interrupt();
+    }).on("start drag", dragBehavior).on("end", finishBehavior));
 
-      var trackOverlay = trackInset.select(function () {
-        return this.parentNode.appendChild(this.cloneNode(true));
-      }).attr("class", "track-overlay");
+    var tickFormat = xScale.tickFormat(5, intClamp ? ",.0f" : 'f');
 
-      trackOverlay.call(d3.drag().on("start.interrupt", function () {
-        slider.interrupt();
-      }).on("start drag", dragBehavior).on("end", finishBehavior));
+    slider.selectAppend("g.ticks")
+    // .attr("class", "ticks")
+    .style('font', '10px ' + font).attr("transform", "translate(0," + 18 + ")").selectAll("text").data(xScale.ticks(numTicks).map(tickFormat)).enter().append("text.scaleTicks").attr("x", xScale).attr("text-anchor", "middle").text(function (d) {
+      return d;
+    });
 
-      var tickFormat = xScale.tickFormat(5, intClamp ? ",.0f" : 'f');
+    var handle = slider.selectAppend("circle.handle").attr("class", "handle").attr("r", 9).attr("cx", xScale(startPos));
 
-      slider.insert("g", ".track-overlay").attr("class", "ticks").style('font', '10px ' + font).attr("transform", "translate(0," + 18 + ")").selectAll("text").data(xScale.ticks(numTicks).map(tickFormat)).enter().append("text").attr("x", xScale).attr("text-anchor", "middle").text(function (d) {
-        return d;
-      });
+    // write the label
+    slider.selectAppend('text.label').attr('y', -14).attr('font-family', font).text(label);
 
-      var handle = slider.insert("circle", ".track-overlay").attr("class", "handle").attr("r", 9).attr("cx", xScale(startPos));
+    // apply styles to everything.
+    (0, _styles.roundEndsStyle)(track);
+    (0, _styles.trackStyle)(track);
+    (0, _styles.handleStyle)(handle);
+    (0, _styles.roundEndsStyle)(trackOverlay);
+    (0, _styles.trackOverlayStyle)(trackOverlay);
+    (0, _styles.roundEndsStyle)(trackInset);
+    (0, _styles.trackInsetStyle)(trackInset);
 
-      // write the label
-      slider.append('text').attr('y', -14).attr('font-family', font).text(label);
+    // setup callbacks
+    function dragBehavior() {
+      var scaledPos = getValue(d3.event.x);
+      // by inverting and reverting the position we assert bounds on the slider.
+      handle.attr("cx", xScale(scaledPos));
+      onDrag ? onDrag(scaledPos) : null;
+    }
 
-      // apply styles to everything.
-      (0, _styles.roundEndsStyle)(track);
-      (0, _styles.trackStyle)(track);
-      (0, _styles.handleStyle)(handle);
-      (0, _styles.roundEndsStyle)(trackOverlay);
-      (0, _styles.trackOverlayStyle)(trackOverlay);
-      (0, _styles.roundEndsStyle)(trackInset);
-      (0, _styles.trackInsetStyle)(trackInset);
-
-      // setup callbacks
-      function dragBehavior() {
-        var scaledPos = getValue(d3.event.x);
-        // by inverting and reverting the position we assert bounds on the slider.
-        handle.attr("cx", xScale(scaledPos));
-        onDrag ? onDrag(scaledPos) : null;
-      }
-
-      function finishBehavior() {
-        var dragPos = getValue(d3.event.x);
-        var finalPos = intClamp ? Math.round(dragPos) : dragPos;
-        handle.transition(trans).attr("cx", xScale(finalPos));
-        onDone(finalPos);
-      }
-    }); // end foreach loop
+    function finishBehavior() {
+      var dragPos = getValue(d3.event.x);
+      var finalPos = intClamp ? Math.round(dragPos) : dragPos;
+      handle.transition(trans).attr("cx", xScale(finalPos));
+      onDone(finalPos);
+    }
   } // end drawSlider()
 
   // Getter and setters for changing settings.
@@ -43527,6 +43558,12 @@ function slid3r() {
     return drawSlider;
   };
 
+  drawSlider.numTicks = function (num) {
+    if (!arguments.length) return numTicks;
+    numTicks = num;
+    return drawSlider;
+  };
+
   drawSlider.font = function (newFont) {
     if (!arguments.length) return font;
     font = newFont;
@@ -43544,7 +43581,7 @@ function slid3r() {
 
 module.exports = slid3r;
 
-},{"./styles.js":78,"d3":38}],78:[function(require,module,exports){
+},{"./styles.js":79,"d3":38}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43571,6 +43608,65 @@ var trackOverlayStyle = exports.trackOverlayStyle = function trackOverlayStyle(s
 
 var handleStyle = exports.handleStyle = function handleStyle(selection) {
   return selection.style('fill', '#fff').style('stroke', '#000').style('stroke-opacity', 0.5).style('strokeWidth', '1.25px');
+};
+
+},{}],80:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _slid3r = require('./slid3r/slid3r');
+
+var _slid3r2 = _interopRequireDefault(_slid3r);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (_ref) {
+  var c = _ref.c,
+      numFlips = _ref.numFlips,
+      simSpeed = _ref.simSpeed,
+      tau = _ref.tau,
+      subChartHeight = _ref.subChartHeight;
+
+  var flipSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([1, 5]).startPos(numFlips).loc([10, (subChartHeight + 65) * 2 + 150]).label('Set Number of Changes per gen').clamp(true);
+
+  var speedSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 500]).startPos(simSpeed).loc([10, (subChartHeight + 65) * 2.5 + 150]).label('Step Delay (ms)').numTicks(4).clamp(true);
+
+  var tauSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 1]).startPos(tau).loc([10, subChartHeight + 170]).vertical(false).label('Set Cooling Temp').numTicks(7).clamp(false);
+
+  return {
+    flipSlider: flipSlider,
+    speedSlider: speedSlider,
+    tauSlider: tauSlider
+  };
+};
+
+},{"./slid3r/slid3r":78}],81:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var subChartHeight = exports.subChartHeight = 100;
+var distChartConfig = exports.distChartConfig = {
+  name: 'distHist',
+  title: 'Distance',
+  height: subChartHeight
+};
+
+var tempChartConfig = exports.tempChartConfig = {
+  name: 'tempHist',
+  title: 'Temperature',
+  height: subChartHeight,
+  loc: [0, subChartHeight + 30]
+};
+
+var flipsChartConfig = exports.flipsChartConfig = {
+  name: 'flipHist',
+  title: '# changes each gen',
+  loc: [0, (subChartHeight + 65) * 2]
 };
 
 },{}]},{},[75]);
