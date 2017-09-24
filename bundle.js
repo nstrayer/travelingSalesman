@@ -43064,7 +43064,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 var _ = require('lodash');
 
-// Takes a given number of cities and makes a random route 
+// Takes a given number of cities and makes a random route
 // between them starting and ending at the first city
 var makeRoute = exports.makeRoute = function makeRoute() {
   var numLocs = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 26;
@@ -43110,7 +43110,6 @@ var calcDistance = exports.calcDistance = function calcDistance(route, locations
 // Takes current generations distance and last generation along with current temp
 // and returns a boolean of if this new solution should be excepted/
 var acceptNewSolution = exports.acceptNewSolution = function acceptNewSolution(currentDist, lastDist, tau) {
-
   if (currentDist < lastDist) {
     // console.log("the new route is shorter than the old.")
     return true;
@@ -43149,7 +43148,7 @@ exports.default = function (c, config, distHistory) {
 
   var distY = d3.scaleLinear().range([height - padding, padding]).domain(d3.extent(distHistory));
 
-  // background 
+  // background
   distanceContainer.selectAppend('rect.background').at({
     width: width,
     height: height,
@@ -43157,7 +43156,7 @@ exports.default = function (c, config, distHistory) {
     fillOpacity: 0.2,
     rx: 10,
     ry: 10,
-    stroke: "darkgrey",
+    stroke: 'darkgrey',
     strokeWidth: 1
   });
 
@@ -43184,9 +43183,84 @@ exports.default = function (c, config, distHistory) {
 },{"d3":38,"d3-jetpack":22}],75:[function(require,module,exports){
 'use strict';
 
-var _slid3r = require('./slid3r/slid3r');
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
 
-var _slid3r2 = _interopRequireDefault(_slid3r);
+exports.default = function (c, locations, onAdd, onRemove) {
+  c.svg.selectAppend('rect.addNewLoc').at({
+    x: c.width * 0.26,
+    width: c.width * 0.75,
+    height: c.height,
+    fill: 'orangered',
+    fillOpacity: 0.1,
+    rx: 15,
+    ry: 15
+  }).on('click', function () {
+    onAdd(d3.mouse(this));
+  });
+
+  var locDots = c.svg.selectAll('.location').data(locations, function (d) {
+    return d.x;
+  });
+
+  locDots.exit().remove();
+
+  locDots.enter().append('circle.location').at({
+    cx: function cx(d) {
+      return c.x(d.x);
+    },
+    cy: function cy(d) {
+      return c.y(d.y);
+    },
+    r: 1e-10,
+    fill: '#fb8072'
+  }).on('mouseover', function () {
+    d3.select(this).transition(d3.transition('locationGrow').duration(500)).at({
+      r: 15,
+      fill: 'orangered'
+    });
+  }).on('click', onRemove).on('mouseout', function () {
+    d3.select(this).transition(d3.transition('locationGrow').duration(500)).at({
+      r: 10,
+      fill: '#fb8072'
+    });
+  }).transition(d3.transition('locationEnter').duration(500)).at({ r: 10 });
+};
+
+},{"d3":38,"d3-jetpack":22}],76:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
+
+exports.default = function (c, route, locations, simSpeed) {
+  var line = d3.line().x(function (d) {
+    return c.x(d.x);
+  }).y(function (d) {
+    return c.y(d.y);
+  });
+
+  var routeLocations = route.map(function (loc) {
+    return locations[loc];
+  });
+
+  var routePath = c.svg.selectAppend('path.routePath').at({
+    fill: 'none',
+    stroke: '#80b1d3',
+    strokeWidth: '2px'
+  });
+
+  routePath.datum(routeLocations).transition(d3.transition('routeChange').duration(simSpeed)).attr('d', line);
+};
+
+},{"d3":38,"d3-jetpack":22}],77:[function(require,module,exports){
+'use strict';
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 var _sliderConfigs = require('./sliderConfigs');
 
@@ -43194,7 +43268,13 @@ var _sliderConfigs2 = _interopRequireDefault(_sliderConfigs);
 
 var _algorithmFuncs = require('./algorithmFuncs');
 
-var _routeDrawing = require('./routeDrawing');
+var _drawRoute = require('./drawRoute');
+
+var _drawRoute2 = _interopRequireDefault(_drawRoute);
+
+var _drawLocations = require('./drawLocations');
+
+var _drawLocations2 = _interopRequireDefault(_drawLocations);
 
 var _drawHistory = require('./drawHistory');
 
@@ -43206,46 +43286,50 @@ var _resetButton2 = _interopRequireDefault(_resetButton);
 
 var _subCharts = require('./subCharts');
 
+var _makeLocations = require('./makeLocations');
+
+var _makeLocations2 = _interopRequireDefault(_makeLocations);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
 var _ = require('lodash');
 
+
 // some constants
-var numLocs = 20;
 var numberSteps = 10000;
+var simSpeed = 0;
 
 // variables we let user modify
+var numLocs = 20;
 var i = 0;
 var tau = 0.5;
-var simSpeed = 0;
 var numFlips = 2;
 var automatedTau = true;
 var distanceHistory = [];
 var tempHistory = [];
 var flipHistory = [];
+var locations = (0, _makeLocations2.default)(numLocs);
+var route = (0, _algorithmFuncs.makeRoute)(numLocs);
 var updateViz = void 0;
 
 // get page width
 var pageWidth = document.getElementById('viz').offsetWidth;
 
-// d3 code to draw simple points
+// setup the viz
 var c = d3.conventions({
   parentSel: d3.select('#viz'),
   totalWidth: pageWidth,
   totalHeight: 700,
-  margin: { left: 50, right: 50, top: 50, bottom: 50 }
+  margin: {
+    left: 50,
+    right: 50,
+    top: 50,
+    bottom: 50
+  }
 });
 c.x.domain([0, 1]);
 c.y.domain([0, 1]);
-
-var route = (0, _algorithmFuncs.makeRoute)(numLocs);
-var locations = _.range(numLocs).map(function (ind) {
-  return {
-    x: _.random(0.33, 1, true),
-    y: _.random(0.15, 1, true)
-  };
-});
 
 // sliders
 
@@ -43261,7 +43345,6 @@ var _setupSliders = (0, _sliderConfigs2.default)({
     tauSlider = _setupSliders.tauSlider;
 
 var sliderChange = function sliderChange(pos) {
-  console.log('taking over temp control');
   automatedTau = false;
   tau = pos;
 };
@@ -43271,7 +43354,7 @@ tauContainer.call(tauSlider.onDone(sliderChange));
 
 var flipContainer = c.svg.selectAppend('g.flipSlider');
 flipContainer.call(flipSlider.onDone(function (pos) {
-  return numFlips = pos;
+  numFlips = pos;
 }));
 
 var speedContainer = c.svg.selectAppend('g.speedSlider');
@@ -43279,7 +43362,29 @@ speedContainer.call(speedSlider.onDone(function (pos) {
   return updateViz = makeUpdateViz(pos);
 }));
 
-(0, _routeDrawing.drawLocations)(c, locations);
+var addLocation = function addLocation(_ref) {
+  var _ref2 = _slicedToArray(_ref, 2),
+      x = _ref2[0],
+      y = _ref2[1];
+
+  locations.push({ x: c.x.invert(x), y: c.y.invert(y) });
+  (0, _drawLocations2.default)(c, locations, addLocation);
+  numLocs = locations.length;
+  route = (0, _algorithmFuncs.makeRoute)(numLocs);
+  resetProgress();
+};
+
+var removeLocation = function removeLocation(d) {
+  console.log(d);
+  var index = locations.indexOf(d);
+  locations.splice(index, 1);
+  (0, _drawLocations2.default)(c, locations, addLocation);
+  numLocs = locations.length;
+  route = (0, _algorithmFuncs.makeRoute)(numLocs);
+  resetProgress();
+};
+
+(0, _drawLocations2.default)(c, locations, addLocation, removeLocation);
 (0, _resetButton2.default)(c, resetProgress);
 
 var makeUpdateViz = function makeUpdateViz(simSpeed) {
@@ -43293,7 +43398,7 @@ var makeUpdateViz = function makeUpdateViz(simSpeed) {
 
     // update tau if we're on automated schedule
     if (automatedTau) {
-      tau = 5 / (i * 0.02 + 1);
+      tau = 5 / (i * 0.04 + 1);
       tauContainer.call(tauSlider.startPos(tau));
     }
 
@@ -43306,7 +43411,7 @@ var makeUpdateViz = function makeUpdateViz(simSpeed) {
     (0, _drawHistory2.default)(c, _subCharts.distChartConfig, distanceHistory);
     (0, _drawHistory2.default)(c, _subCharts.tempChartConfig, tempHistory);
     (0, _drawHistory2.default)(c, _subCharts.flipsChartConfig, flipHistory);
-    (0, _routeDrawing.drawRoute)(c, route, locations, simSpeed);
+    (0, _drawRoute2.default)(c, route, locations, simSpeed);
 
     if (i < numberSteps) {
       i++;
@@ -43328,7 +43433,24 @@ function resetProgress() {
   i = 0;
 }
 
-},{"./algorithmFuncs":73,"./drawHistory":74,"./resetButton":76,"./routeDrawing":77,"./slid3r/slid3r":78,"./sliderConfigs":80,"./subCharts":81,"d3":38,"d3-jetpack":22,"lodash":45}],76:[function(require,module,exports){
+},{"./algorithmFuncs":73,"./drawHistory":74,"./drawLocations":75,"./drawRoute":76,"./makeLocations":78,"./resetButton":79,"./sliderConfigs":82,"./subCharts":83,"d3":38,"d3-jetpack":22,"lodash":45}],78:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var _ = require('lodash');
+
+exports.default = function (numLocs) {
+  return _.range(numLocs).map(function () {
+    return {
+      x: _.random(0.33, 1, true),
+      y: _.random(0.15, 1, true)
+    };
+  });
+};
+
+},{"lodash":45}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43345,67 +43467,22 @@ exports.default = function (c, onClick) {
     height: buttonHeight,
     rx: 10,
     ry: 10,
-    fill: "#d9d9d9",
-    stroke: "darkgrey",
+    y: -15,
+    fill: '#d9d9d9',
+    stroke: 'darkgrey',
     strokeWidth: 1
   });
 
-  resetButton.selectAppend('text').text("reset").at({
+  resetButton.selectAppend('text').text('reset').at({
     x: buttonWidth / 2,
-    y: buttonHeight / 1.8,
+    y: buttonHeight / 1.8 - 15,
     textAnchor: 'middle',
     fontFamily: 'optima'
   });
   resetButton.on('click', onClick);
 };
 
-},{}],77:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
-var animationSpeed = 100;
-
-var drawLocations = exports.drawLocations = function drawLocations(c, locations) {
-  var locDots = c.svg.selectAll(".location").data(locations);
-
-  locDots.exit().remove();
-
-  locDots.enter().append('circle.location').at({
-    cx: function cx(d) {
-      return c.x(d.x);
-    },
-    cy: function cy(d) {
-      return c.y(d.y);
-    },
-    r: 1e-10,
-    fill: "#fb8072"
-  }).transition(d3.transition('locationEnter').duration(500)).at({ r: 10 });
-};
-
-var drawRoute = exports.drawRoute = function drawRoute(c, route, locations, simSpeed) {
-  var line = d3.line().x(function (d) {
-    return c.x(d.x);
-  }).y(function (d) {
-    return c.y(d.y);
-  });
-
-  var routeLocations = route.map(function (loc) {
-    return locations[loc];
-  });
-
-  var routePath = c.svg.selectAppend('path.routePath').at({
-    fill: 'none',
-    stroke: '#80b1d3',
-    strokeWidth: '2px'
-  });
-
-  routePath.datum(routeLocations).transition(d3.transition('routeChange').duration(simSpeed)).attr('d', line);
-};
-
-},{"d3":38,"d3-jetpack":22}],78:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -43589,7 +43666,7 @@ function slid3r() {
 
 module.exports = slid3r;
 
-},{"./styles.js":79,"d3":38}],79:[function(require,module,exports){
+},{"./styles.js":81,"d3":38}],81:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43618,7 +43695,7 @@ var handleStyle = exports.handleStyle = function handleStyle(selection) {
   return selection.style('fill', '#fff').style('stroke', '#000').style('stroke-opacity', 0.5).style('strokeWidth', '1.25px');
 };
 
-},{}],80:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43651,7 +43728,7 @@ exports.default = function (_ref) {
   };
 };
 
-},{"./slid3r/slid3r":78}],81:[function(require,module,exports){
+},{"./slid3r/slid3r":80}],83:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43677,4 +43754,4 @@ var flipsChartConfig = exports.flipsChartConfig = {
   loc: [0, (subChartHeight + 65) * 2]
 };
 
-},{}]},{},[75]);
+},{}]},{},[77]);

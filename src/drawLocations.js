@@ -33,14 +33,20 @@ export default (c, locations, onAdd, onRemove) => {
       d3
         .select(this)
         .transition(d3.transition('locationGrow').duration(500))
-        .attr('r', 15);
+        .at({
+          r: 15,
+          fill: 'orangered',
+        });
     })
     .on('click', onRemove)
     .on('mouseout', function() {
       d3
         .select(this)
         .transition(d3.transition('locationGrow').duration(500))
-        .attr('r', 10);
+        .at({
+          r: 10,
+          fill: '#fb8072',
+        });
     })
     .transition(d3.transition('locationEnter').duration(500))
     .at({r: 10});

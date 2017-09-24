@@ -99,7 +99,7 @@ const removeLocation = (d) => {
   numLocs = locations.length;
   route = makeRoute(numLocs);
   resetProgress();
-}
+};
 
 drawLocations(c, locations, addLocation, removeLocation);
 resetButton(c, resetProgress);
@@ -115,7 +115,7 @@ const makeUpdateViz = (simSpeed) =>
 
     // update tau if we're on automated schedule
     if (automatedTau) {
-      tau = 5 / (i * 0.02 + 1);
+      tau = 5 / (i * 0.04 + 1);
       tauContainer.call(tauSlider.startPos(tau));
     }
 
