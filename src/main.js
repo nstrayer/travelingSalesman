@@ -24,7 +24,7 @@ const numberSteps = 10000;
 const simSpeed = 0;
 
 // variables we let user modify
-let numLocs = 20;
+let numLocs = 15;
 let i = 0;
 let tau = 0.5;
 let numFlips = 2;
@@ -32,12 +32,15 @@ let automatedTau = true;
 let distanceHistory = [];
 let tempHistory = [];
 let flipHistory = [];
-let locations = makeLocations(numLocs);
-let route = makeRoute(numLocs);
 let updateViz;
 
 // get page width
 const pageWidth = document.getElementById('viz').offsetWidth;
+const controlWidthProp = pageWidth < 500 ? 0.5 : 0.3;
+console.log(`page is ${pageWidth} px wide`);
+
+let locations = makeLocations(numLocs, controlWidthProp);
+let route = makeRoute(numLocs);
 
 // setup the viz
 const c = d3.conventions({
@@ -85,7 +88,7 @@ speedContainer.call(
 
 const addLocation = ([x, y]) => {
   locations.push({x: c.x.invert(x), y: c.y.invert(y)});
-  drawLocations(c, locations, addLocation);
+  drawLocations({c, locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp});
   numLocs = locations.length;
   route = makeRoute(numLocs);
   resetProgress();
@@ -95,13 +98,13 @@ const removeLocation = (d) => {
   console.log(d);
   const index = locations.indexOf(d);
   locations.splice(index, 1);
-  drawLocations(c, locations, addLocation);
+  drawLocations({c, locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp});
   numLocs = locations.length;
   route = makeRoute(numLocs);
   resetProgress();
 };
 
-drawLocations(c, locations, addLocation, removeLocation);
+drawLocations({c, locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp});
 resetButton(c, resetProgress);
 
 const makeUpdateViz = (simSpeed) =>
@@ -115,7 +118,7 @@ const makeUpdateViz = (simSpeed) =>
 
     // update tau if we're on automated schedule
     if (automatedTau) {
-      tau = 5 / (i * 0.04 + 1);
+      tau = 5 / (i * 0.06 + 1);
       tauContainer.call(tauSlider.startPos(tau));
     }
 
@@ -125,9 +128,9 @@ const makeUpdateViz = (simSpeed) =>
     flipHistory.push(numFlips);
 
     // redraw vis with new steps
-    drawHistory(c, distChartConfig, distanceHistory);
-    drawHistory(c, tempChartConfig, tempHistory);
-    drawHistory(c, flipsChartConfig, flipHistory);
+    drawHistory(c, {...distChartConfig, controlWidthProp}, distanceHistory);
+    drawHistory(c, {...tempChartConfig, controlWidthProp}, tempHistory);
+    drawHistory(c, {...flipsChartConfig, controlWidthProp}, flipHistory);
     drawRoute(c, route, locations, simSpeed);
 
     if (i < numberSteps) {

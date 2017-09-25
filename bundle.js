@@ -43136,11 +43136,12 @@ exports.default = function (c, config, distHistory) {
       _config$padding = config.padding,
       padding = _config$padding === undefined ? 12 : _config$padding,
       _config$height = config.height,
-      height = _config$height === undefined ? 100 : _config$height;
+      height = _config$height === undefined ? 100 : _config$height,
+      controlWidthProp = config.controlWidthProp;
 
   // mini line chart for the route distance
 
-  var width = c.width * 0.25;
+  var width = c.width * controlWidthProp;
 
   var distanceContainer = c.svg.selectAppend('g.' + name).translate(loc);
 
@@ -43188,10 +43189,17 @@ Object.defineProperty(exports, "__esModule", {
 });
 var d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
 
-exports.default = function (c, locations, onAdd, onRemove) {
+exports.default = function (_ref) {
+  var c = _ref.c,
+      locations = _ref.locations,
+      onAdd = _ref.onAdd,
+      onRemove = _ref.onRemove,
+      _ref$controlWidthProp = _ref.controlWidthProp,
+      controlWidthProp = _ref$controlWidthProp === undefined ? 0.25 : _ref$controlWidthProp;
+
   c.svg.selectAppend('rect.addNewLoc').at({
-    x: c.width * 0.26,
-    width: c.width * 0.75,
+    x: c.width * (controlWidthProp + 0.02), // gives a little padding
+    width: c.width * (1 - controlWidthProp),
     height: c.height,
     fill: 'orangered',
     fillOpacity: 0.1,
@@ -43260,6 +43268,8 @@ exports.default = function (c, route, locations, simSpeed) {
 },{"d3":38,"d3-jetpack":22}],77:[function(require,module,exports){
 'use strict';
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 var _sliderConfigs = require('./sliderConfigs');
@@ -43301,7 +43311,7 @@ var numberSteps = 10000;
 var simSpeed = 0;
 
 // variables we let user modify
-var numLocs = 20;
+var numLocs = 15;
 var i = 0;
 var tau = 0.5;
 var numFlips = 2;
@@ -43309,12 +43319,15 @@ var automatedTau = true;
 var distanceHistory = [];
 var tempHistory = [];
 var flipHistory = [];
-var locations = (0, _makeLocations2.default)(numLocs);
-var route = (0, _algorithmFuncs.makeRoute)(numLocs);
 var updateViz = void 0;
 
 // get page width
 var pageWidth = document.getElementById('viz').offsetWidth;
+var controlWidthProp = pageWidth < 500 ? 0.5 : 0.3;
+console.log('page is ' + pageWidth + ' px wide');
+
+var locations = (0, _makeLocations2.default)(numLocs, controlWidthProp);
+var route = (0, _algorithmFuncs.makeRoute)(numLocs);
 
 // setup the viz
 var c = d3.conventions({
@@ -43368,7 +43381,7 @@ var addLocation = function addLocation(_ref) {
       y = _ref2[1];
 
   locations.push({ x: c.x.invert(x), y: c.y.invert(y) });
-  (0, _drawLocations2.default)(c, locations, addLocation);
+  (0, _drawLocations2.default)({ c: c, locations: locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp: controlWidthProp });
   numLocs = locations.length;
   route = (0, _algorithmFuncs.makeRoute)(numLocs);
   resetProgress();
@@ -43378,13 +43391,13 @@ var removeLocation = function removeLocation(d) {
   console.log(d);
   var index = locations.indexOf(d);
   locations.splice(index, 1);
-  (0, _drawLocations2.default)(c, locations, addLocation);
+  (0, _drawLocations2.default)({ c: c, locations: locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp: controlWidthProp });
   numLocs = locations.length;
   route = (0, _algorithmFuncs.makeRoute)(numLocs);
   resetProgress();
 };
 
-(0, _drawLocations2.default)(c, locations, addLocation, removeLocation);
+(0, _drawLocations2.default)({ c: c, locations: locations, onAdd: addLocation, onRemove: removeLocation, controlWidthProp: controlWidthProp });
 (0, _resetButton2.default)(c, resetProgress);
 
 var makeUpdateViz = function makeUpdateViz(simSpeed) {
@@ -43398,7 +43411,7 @@ var makeUpdateViz = function makeUpdateViz(simSpeed) {
 
     // update tau if we're on automated schedule
     if (automatedTau) {
-      tau = 5 / (i * 0.04 + 1);
+      tau = 5 / (i * 0.06 + 1);
       tauContainer.call(tauSlider.startPos(tau));
     }
 
@@ -43408,9 +43421,9 @@ var makeUpdateViz = function makeUpdateViz(simSpeed) {
     flipHistory.push(numFlips);
 
     // redraw vis with new steps
-    (0, _drawHistory2.default)(c, _subCharts.distChartConfig, distanceHistory);
-    (0, _drawHistory2.default)(c, _subCharts.tempChartConfig, tempHistory);
-    (0, _drawHistory2.default)(c, _subCharts.flipsChartConfig, flipHistory);
+    (0, _drawHistory2.default)(c, _extends({}, _subCharts.distChartConfig, { controlWidthProp: controlWidthProp }), distanceHistory);
+    (0, _drawHistory2.default)(c, _extends({}, _subCharts.tempChartConfig, { controlWidthProp: controlWidthProp }), tempHistory);
+    (0, _drawHistory2.default)(c, _extends({}, _subCharts.flipsChartConfig, { controlWidthProp: controlWidthProp }), flipHistory);
     (0, _drawRoute2.default)(c, route, locations, simSpeed);
 
     if (i < numberSteps) {
@@ -43441,10 +43454,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 var _ = require('lodash');
 
-exports.default = function (numLocs) {
+exports.default = function (numLocs, controlWidthProp) {
   return _.range(numLocs).map(function () {
     return {
-      x: _.random(0.33, 1, true),
+      x: _.random(controlWidthProp + 0.02, 1, true),
       y: _.random(0.15, 1, true)
     };
   });
@@ -43715,11 +43728,11 @@ exports.default = function (_ref) {
       tau = _ref.tau,
       subChartHeight = _ref.subChartHeight;
 
-  var flipSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([1, 5]).startPos(numFlips).loc([10, (subChartHeight + 65) * 2 + 150]).label('Set Number of Changes per gen').clamp(true);
+  var flipSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([1, 5]).startPos(numFlips).loc([10, (subChartHeight + 65) * 2 + 150]).label('Set # of changes each gen').clamp(true);
 
-  var speedSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 500]).startPos(simSpeed).loc([10, (subChartHeight + 65) * 2.5 + 150]).label('Step Delay (ms)').numTicks(4).clamp(true);
+  var speedSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 500]).startPos(simSpeed).loc([10, (subChartHeight + 65) * 2.5 + 150]).label('Step delay (ms)').numTicks(4).clamp(true);
 
-  var tauSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 1]).startPos(tau).loc([10, subChartHeight + 170]).vertical(false).label('Set Cooling Temp').numTicks(7).clamp(false);
+  var tauSlider = (0, _slid3r2.default)().width(c.width * 0.2).range([0, 1]).startPos(tau).loc([10, subChartHeight + 170]).vertical(false).label('Set cooling temp').numTicks(7).clamp(false);
 
   return {
     flipSlider: flipSlider,

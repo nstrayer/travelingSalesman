@@ -6,7 +6,7 @@ export default ({c, numFlips, simSpeed, tau, subChartHeight}) => {
     .range([1, 5])
     .startPos(numFlips)
     .loc([10, (subChartHeight + 65) * 2 + 150])
-    .label('Set Number of Changes per gen')
+    .label('Set # of changes each gen')
     .clamp(true);
 
   const speedSlider = slid3r()
@@ -14,7 +14,7 @@ export default ({c, numFlips, simSpeed, tau, subChartHeight}) => {
     .range([0, 500])
     .startPos(simSpeed)
     .loc([10, (subChartHeight + 65) * 2.5 + 150])
-    .label('Step Delay (ms)')
+    .label('Step delay (ms)')
     .numTicks(4)
     .clamp(true);
 
@@ -24,7 +24,7 @@ export default ({c, numFlips, simSpeed, tau, subChartHeight}) => {
     .startPos(tau)
     .loc([10, subChartHeight + 170])
     .vertical(false)
-    .label('Set Cooling Temp')
+    .label('Set cooling temp')
     .numTicks(7)
     .clamp(false);
 

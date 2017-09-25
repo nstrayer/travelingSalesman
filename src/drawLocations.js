@@ -1,11 +1,11 @@
 const d3 = Object.assign({}, require('d3'), require('d3-jetpack'));
 
-export default (c, locations, onAdd, onRemove) => {
+export default ({c, locations, onAdd, onRemove, controlWidthProp = 0.25}) => {
   c.svg
     .selectAppend('rect.addNewLoc')
     .at({
-      x: c.width * 0.26,
-      width: c.width * 0.75,
+      x: c.width * (controlWidthProp + 0.02), // gives a little padding
+      width: c.width * (1 - controlWidthProp),
       height: c.height,
       fill: 'orangered',
       fillOpacity: 0.1,
